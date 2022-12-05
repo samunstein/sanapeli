@@ -1,0 +1,65 @@
+html, body, #root, .App {
+  min-height: 100%;
+}
+
+.App {
+  display: flex;
+  flex-direction: row;
+}
+
+.sanapeli-area, .search-area {
+  padding: 5px;
+}
+
+.sanapeli-area {
+  flex: 500px 1 0;
+  border-right: 1px dashed black;
+}
+
+.sanapeli-area > button, .search > button {
+  margin: 0 10px;
+}
+
+.search-area {
+  flex: 300px 1 0;
+}
+
+.search {
+  min-height: 300px;
+}
+
+.word-panel {
+  margin: 5px;
+  border: 1px solid black;
+  width: 200px;
+}
+
+.sanapeli-result-area {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.word-name {
+  text-align: center;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.word-meaning {
+  border-top: 1px dashed black;
+  margin: 5px;
+  padding: 2px 0;
+}
+
+.word-class {
+  background-color: #AAA;
+}
+.word-descriptors {
+  background-color: #AAA;
+  font-style: italic;
+}
+.word-description {
+  word-wrap: break-word;
+}
