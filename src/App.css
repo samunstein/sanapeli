@@ -16,6 +16,14 @@ html, body, #root, .App {
   border-right: 1px dashed black;
 }
 
+.sanapeli-order {
+  margin: 5px 0;
+}
+
+.sanapeli-order > button {
+  margin: 0 5px;
+}
+
 .sanapeli-area > button, .search > button {
   margin: 0 10px;
 }

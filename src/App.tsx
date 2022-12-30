@@ -7,6 +7,8 @@ import {WordData, WordInfo} from './WordInfo';
 interface AppState {
   sanapeliWord: string | undefined;
   showSanapeliSolutions: boolean;
+  solutionOrderByName: boolean;
+  solutionReverse: boolean;
   wordSearched: boolean;
   foundWord: WordData | undefined;
   suggestedWord: WordData | undefined;
@@ -18,7 +20,7 @@ const wordList: ReadonlyArray<WordData> = allWords as ReadonlyArray<WordData>
 
 function App() {
   const initialState: AppState = {
-    showSanapeliSolutions: false, sanapeliWord: undefined, foundWord: undefined, suggestedWord: undefined, wordSearched: false, suggestDifficulty: 2, suggestSearched: false
+    showSanapeliSolutions: false, sanapeliWord: undefined, foundWord: undefined, suggestedWord: undefined, wordSearched: false, suggestDifficulty: 2, suggestSearched: false, solutionOrderByName: true, solutionReverse: false
   }
   const [state, setState] = useState<AppState>(initialState)
 
@@ -47,11 +49,13 @@ function App() {
   function wordSearch(): void {
     const word = getSearchInputText();
     setState(prev => {
-      return {...prev, foundWord: wordList.find(w => w.word === word), wordSearched: true}
+      return {...prev, foundWord: wordList.find(w => w.word.toLocaleLowerCase() === word.toLocaleLowerCase()), wordSearched: true}
     });
   }
 
   function isSubWord(smaller: string, bigger: string, canBeSame: boolean = false): boolean {
+    smaller = smaller.toLocaleLowerCase();
+    bigger = bigger.toLocaleLowerCase();
     const letters = new Set(smaller);
     if (!canBeSame && smaller === bigger) return false;
     for (let l of letters) {
@@ -81,6 +85,14 @@ function App() {
     });
   }
 
+  function clearSanapeli(): void {
+    if (state.sanapeliWord) {
+      setState(prev => {
+        return {...prev, sanapeliWord: undefined}
+      });
+    }
+  }
+
   function clearSearch(): void {
     if (state.wordSearched) {
       setState(prev => {
@@ -97,6 +109,14 @@ function App() {
     }
   }
 
+  function moveRandomToSanapeli(): void {
+    const word = state.suggestedWord
+    if (word !== undefined && sanapeliInput.current !== null) {
+      sanapeliInput.current.value = word.word;
+      clearSanapeli();
+    }
+  }
+
   function randomWord(): void {
     let min = 0, max = 0;
 
@@ -105,15 +125,15 @@ function App() {
       max = 20;
     } else if (state.suggestDifficulty === 1) {
       min = 21;
-      max = 49;
+      max = 34;
     } else if (state.suggestDifficulty === 2) {
-      min = 50;
-      max = 85;
+      min = 35;
+      max = 59;
     } else if (state.suggestDifficulty === 3) {
-      min = 86;
-      max = 130;
+      min = 60;
+      max = 110;
     } else if (state.suggestDifficulty === 4) {
-      min = 131;
+      min = 110;
       max = Infinity;
     }
 
@@ -126,17 +146,44 @@ function App() {
     });
   }
 
+  function sanapeliOrder(w1: WordData, w2: WordData): number {
+    const mult = state.solutionReverse ? -1 : 1;
+    if (state.solutionOrderByName) {
+      return w1.word < w2.word ? -mult : mult;
+    } else {
+      return mult * (w1.word.length - w2.word.length);
+    }
+  }
+
+  function orderByName(): void {
+    setState(prev => {
+      return {...prev, solutionOrderByName: true, solutionReverse: prev.solutionOrderByName ? !prev.solutionReverse : false}
+    });
+  }
+
+  function orderByLen(): void {
+    setState(prev => {
+      return {...prev, solutionOrderByName: false, solutionReverse: !prev.solutionOrderByName ? !prev.solutionReverse : false}
+    });
+  }
+
   return (
     <div className="App">
       <div className="sanapeli-area">
-        <input type="text" ref={sanapeliInput} defaultValue="" onKeyDown={e => e.key === "Enter" ? sanapeliSearch() : ""} />
+        <input type="text" ref={sanapeliInput} defaultValue="" onKeyDown={e => e.key === "Enter" ? sanapeliSearch() : ""} onChange={() => clearSanapeli()} />
         <button onClick={_ => sanapeliSearch()}>Hae alisanat!</button>
         {state.sanapeliWord !== undefined ? 
           `Sanoja: ${getSubWords(state.sanapeliWord).length}`
         : <></>}
+        {state.sanapeliWord !== undefined && state.showSanapeliSolutions ? 
+          <div className="sanapeli-order">
+            <button onClick={_ => orderByName()}>Aakkosjärjestys{state.solutionOrderByName ? state.solutionReverse ? " ↑" : " ↓" : ""}</button> 
+            <button onClick={_ => orderByLen()}>Pituusjärjestys{!state.solutionOrderByName ? state.solutionReverse ? " ↑" : " ↓" : ""}</button>
+          </div>
+        : <></>}
         <div className="sanapeli-result-area">
           {state.sanapeliWord !== undefined && state.showSanapeliSolutions ? 
-            getSubWords(state.sanapeliWord).map(w => <WordInfo data={w} initClosed={true} />)
+            [...getSubWords(state.sanapeliWord)].sort(sanapeliOrder).map(w => <WordInfo data={w} initClosed={true} />)
           : <></>}
         </div>
       </div>
@@ -145,7 +192,7 @@ function App() {
           <input type="text" ref={searchInput} defaultValue="" onKeyDown={e => e.key === "Enter" ? wordSearch() : ""} onChange={() => clearSearch()} />
           <button onClick={_ => wordSearch()}>Onko tämä olemassa?</button>
           {state.wordSearched ? 
-            state.foundWord !== undefined ? "Joo!" : <span>Ei! <button onClick={() => searchWikisanakirja()}>Tarkista!</button></span>
+            state.foundWord !== undefined ? <span>Joo! <button onClick={() => searchWikisanakirja()}>Kerro Lisää!</button></span> : <span>Ei! <button onClick={() => searchWikisanakirja()}>Tarkista!</button></span>
           : <></>}
           {state.wordSearched ? 
             state.foundWord !== undefined ? <WordInfo initClosed={false} data={state.foundWord}></WordInfo> : <></>
@@ -164,7 +211,7 @@ function App() {
           <div>
             <span>Sisältäen kirjaimet: </span><input type="text" ref={suggestInput} defaultValue="" onKeyDown={e => e.key === "Enter" ? randomWord() : ""} onChange={() => clearSuggest()} />
           </div>
-          <button onClick={() => randomWord()}>Arvo!</button>
+          <button onClick={() => randomWord()}>Arvo!</button> {state.suggestSearched && state.suggestedWord !== undefined ? <button onClick={() => moveRandomToSanapeli()}>Etsi alisanoja</button> : <></>}
           {state.suggestSearched ? ( state.suggestedWord !== undefined ? <WordInfo initClosed={false} data={state.suggestedWord}></WordInfo> : <div>Eioo</div> ) : <></>}
           
         </div>
